@@ -1,0 +1,15 @@
+.git
+.github
+.next
+node_modules
+frontend/node_modules
+frontend/.next
+frontend/out
+frontend/tests
+backend/.pytest_cache
+backend/.coverage
+backend/htmlcov
+**/__pycache__
+**/*.py[cod]
+.env
+.venv

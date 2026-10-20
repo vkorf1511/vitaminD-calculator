@@ -1,0 +1,197 @@
+openapi: 3.1.0
+info:
+  title: Vitamin D Exposure Estimate API
+  version: 1.0.0
+  description: >
+    Provides a weather- and solar-elevation-aware estimate of a potential
+    outdoor exposure window. This is educational information, not medical advice.
+servers:
+  - url: http://localhost:8000
+paths:
+  /:
+    get:
+      summary: Application landing page
+      responses:
+        "200":
+          description: Vitamin D exposure calculator interface
+          content:
+            text/html:
+              schema:
+                type: string
+  /process:
+    post:
+      summary: Calculate today's estimated exposure window
+      operationId: calculateExposure
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExposureRequest"
+      responses:
+        "200":
+          description: Exposure estimate and 24-hour chart series
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExposureResponse"
+        "422":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Weather service unavailable or returned an invalid response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected application error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /locations:
+    get:
+      summary: List the three largest cities available for each country
+      operationId: listLocations
+      responses:
+        "200":
+          description: Country and city options
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CountryLocations"
+  /health:
+    get:
+      summary: Liveness check
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    const: ok
+        "503":
+          description: Required bundled location data is unavailable
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    const: DOWN
+  /metrics:
+    get:
+      summary: Prometheus application metrics
+      responses:
+        "200":
+          description: Prometheus metrics
+          content:
+            text/plain:
+              schema:
+                type: string
+components:
+  schemas:
+    ExposureRequest:
+      type: object
+      required: [latitude, longitude, skin_type, clothing_density]
+      properties:
+        latitude:
+          type: number
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: number
+          minimum: -180
+          maximum: 180
+        location_name:
+          type: string
+          maxLength: 120
+        skin_type:
+          type: string
+          enum: ["I", "II", "III", "IV", "V"]
+        clothing_density:
+          type: string
+          enum: [naked, swimsuit, summer clothes, winter clothes]
+    ExposureResponse:
+      type: object
+      required:
+        - location
+        - date
+        - recommendation
+        - window_start
+        - window_end
+        - recommended_minutes
+        - hourly_exposure_minutes
+        - advisory
+      properties:
+        location:
+          type: string
+        date:
+          type: string
+          format: date
+        recommendation:
+          type: string
+        window_start:
+          type: string
+          nullable: true
+        window_end:
+          type: string
+          nullable: true
+        recommended_minutes:
+          type: integer
+          minimum: 0
+        hourly_exposure_minutes:
+          type: array
+          minItems: 24
+          maxItems: 24
+          items:
+            type: integer
+            minimum: 0
+        hourly_uv_index:
+          type: array
+          minItems: 24
+          maxItems: 24
+          items:
+            type: number
+            minimum: 0
+        advisory:
+          type: string
+    CountryLocations:
+      type: object
+      required: [country_code, country_name, cities]
+      properties:
+        country_code:
+          type: string
+        country_name:
+          type: string
+        cities:
+          type: array
+          items:
+            type: object
+            required: [name, latitude, longitude]
+            properties:
+              name:
+                type: string
+              latitude:
+                type: number
+              longitude:
+                type: number
+              population:
+                type: integer
+    ErrorResponse:
+      type: object
+      required: [detail, request_id]
+      properties:
+        detail:
+          type: string
+        request_id:
+          type: string
