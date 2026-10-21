@@ -229,4 +229,4 @@ frontend/test-results/
 # Specifications and other personal files that are not AI generated
 spec.md
 build_prompts.md
-~/specs/features/
+/specs/features/
