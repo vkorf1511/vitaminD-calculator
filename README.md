@@ -35,12 +35,16 @@ Requirements: Python 3.12+ and Node.js 20+.
 
 Device geolocation is available on localhost and HTTPS. If permission is declined, choose a city from the location selector instead.
 
+Email signups require PostgreSQL. Set `DATABASE_URL` to a PostgreSQL connection URL ending in `/email_list` (the connecting role needs permission to create that database on first use), for example `postgresql+psycopg://<user>:<password>@localhost:5432/email_list`. The service creates the database and `email_list` table when the first signup is submitted.
+
 ## API
 
 | Method | Path | Description |
 | --- | --- | --- |
 | `GET` | `/` | Serves the exported Next.js application in production. |
 | `POST` | `/process` | Returns today's estimate and 24 hourly chart points. |
+| `POST` | `/email_list` | Creates or updates a personalized daily-window email signup. |
+| `GET` | `/successful_submission` | Displays confirmation with a return link and seven-second redirect. |
 | `GET` | `/locations` | Returns bundled country/city options. |
 | `GET` | `/health` | Liveness response: `{"status":"ok"}`. |
 | `GET` | `/metrics` | Prometheus request and latency metrics. |
@@ -66,6 +70,7 @@ The response includes the selected local date, a natural-language recommendation
 1. **Use the device location:** leave “Use my current location” selected, choose a skin type and clothing option, allow the browser location prompt, and request an estimate. The browser sends coordinates to the API, which retrieves the local Open-Meteo forecast and returns the chart and suggested hour.
 2. **Choose a city manually:** select one of the bundled city options, choose skin and clothing details, and request an estimate. No browser location permission is needed.
 3. **No suitable forecast / provider error:** the chart indicates when the simple model considers sunlight and weather suitable. If no hour qualifies, the response says so; provider failures and invalid selections are surfaced as readable messages with a request ID for support.
+4. **Subscribe for daily windows:** enter a name and email on the landing page. The form uses the currently selected city or browser location and skin type; repeat signups update location, skin type, and timezone for the existing email. A confirmation page provides a return link and automatically redirects after seven seconds.
 
 ## Calculation and safety notes
 

@@ -57,6 +57,10 @@ export default function Home() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingLocations, setLoadingLocations] = useState(true);
+  const [signupName, setSignupName] = useState("");
+  const [signupEmail, setSignupEmail] = useState("");
+  const [signupError, setSignupError] = useState("");
+  const [signupLoading, setSignupLoading] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -141,6 +145,34 @@ export default function Home() {
     }
   }
 
+  async function handleSignup(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSignupLoading(true);
+    setSignupError("");
+    try {
+      const coordinates = await getCoordinates();
+      const response = await fetch(`${apiBase()}/email_list`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email_address: signupEmail,
+          name: signupName,
+          latitude: coordinates.latitude,
+          longitude: coordinates.longitude,
+          location_name: coordinates.name,
+          skin_type: skinType,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail ?? "We couldn't save your email. Please try again.");
+      window.location.assign("/successful_submission");
+    } catch (reason) {
+      setSignupError(reason instanceof Error ? reason.message : "We couldn't save your email. Please try again.");
+    } finally {
+      setSignupLoading(false);
+    }
+  }
+
   return (
     <main className="page-shell">
       <header className="topbar">
@@ -156,6 +188,43 @@ export default function Home() {
         <h1>Find your sun-safe<br /><span>moment.</span></h1>
         <p className="intro-copy">A simple, weather-aware estimate for today's potential vitamin D exposure window.</p>
       </section>
+
+      <aside className="email-signup" aria-labelledby="email-signup-title">
+        <p className="email-signup-kicker">A BRIGHTER KIND OF INBOX</p>
+        <h2 id="email-signup-title">Your daily window, delivered.</h2>
+        <p className="email-signup-copy">Get your personalized daily Vitamin D window so you never miss the health benefits</p>
+        <form onSubmit={handleSignup}>
+          <label htmlFor="signup-name">Your name</label>
+          <input
+            id="signup-name"
+            name="name"
+            type="text"
+            autoComplete="name"
+            maxLength={120}
+            required
+            value={signupName}
+            onChange={(event) => setSignupName(event.target.value)}
+            placeholder="e.g. Alex"
+          />
+          <label htmlFor="signup-email">Email address</label>
+          <input
+            id="signup-email"
+            name="email_address"
+            type="email"
+            autoComplete="email"
+            maxLength={320}
+            required
+            value={signupEmail}
+            onChange={(event) => setSignupEmail(event.target.value)}
+            placeholder="you@example.com"
+          />
+          {signupError && <p className="email-signup-error" role="alert">{signupError}</p>}
+          <button className="email-signup-button" type="submit" disabled={signupLoading || loadingLocations}>
+            {signupLoading ? "Saving your details…" : "Sign me up"}
+          </button>
+        </form>
+        <p className="email-signup-note">We’ll use your location and skin type to personalize your daily window.</p>
+      </aside>
 
       <section className="calculator" aria-label="Sun exposure calculator">
         <aside className="controls-panel">

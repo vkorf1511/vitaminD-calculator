@@ -21,6 +21,11 @@ from opentelemetry.sdk.trace import TracerProvider
 from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.email_capture import (
+    EmailSignupRequest,
+    EmailSignupResponse,
+    submit_email_signup,
+)
 from app.services import WeatherServiceError, calculate_recommendation, fetch_weather
 
 BASE_DIR = Path(__file__).resolve().parents[2]
@@ -61,6 +66,13 @@ app = FastAPI(
     version="1.0.0",
     description="An educational, weather-aware outdoor exposure estimate. Not medical advice.",
     openapi_url="/openapi.json",
+)
+app.add_api_route(
+    "/email_list",
+    submit_email_signup,
+    methods=["POST"],
+    response_model=EmailSignupResponse,
+    summary="Create or update a personalized daily-window email signup",
 )
 app.add_middleware(
     CORSMiddleware,
@@ -149,6 +161,17 @@ async def landing_page() -> Any:
     index_file = FRONTEND_DIR / "index.html"
     if index_file.is_file():
         return FileResponse(index_file)
+    return JSONResponse(
+        status_code=503,
+        content={"detail": "The web interface is not built. Run the frontend development server or build it first."},
+    )
+
+
+@app.get("/successful_submission", include_in_schema=False)
+async def successful_submission_page() -> Any:
+    success_file = FRONTEND_DIR / "successful_submission" / "index.html"
+    if success_file.is_file():
+        return FileResponse(success_file)
     return JSONResponse(
         status_code=503,
         content={"detail": "The web interface is not built. Run the frontend development server or build it first."},
