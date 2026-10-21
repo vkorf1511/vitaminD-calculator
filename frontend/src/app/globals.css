@@ -35,6 +35,27 @@ h1, h2, h3, p { margin-top: 0; }
 h1 { margin-bottom: 11px; font: 800 clamp(37px, 4.7vw, 55px)/1.08 "Manrope", sans-serif; letter-spacing: -2.8px; }
 h1 span { color: var(--green); }
 .intro-copy { max-width: 440px; margin: 0; color: #73857a; font-size: 14px; line-height: 1.7; }
+.email-signup { position: absolute; z-index: 1; top: 102px; right: max(32px, calc((100vw - 1152px) / 2)); width: 350px; padding: 18px 20px; border: 1px solid #edf0e8; border-radius: 15px; background: rgba(255, 255, 255, .96); box-shadow: 0 12px 38px rgba(38, 72, 52, .07); }
+.email-signup-kicker { margin: 0 0 7px; color: var(--green); font-size: 9px; font-weight: 700; letter-spacing: .14em; }
+.email-signup h2 { margin: 0 0 5px; color: var(--ink); font: 700 15px "Manrope", sans-serif; letter-spacing: -.3px; }
+.email-signup-copy { margin: 0 0 12px; color: #7f9084; font-size: 10px; line-height: 1.5; }
+.email-signup form label { margin: 0 0 5px; color: #39564a; font-size: 10px; }
+.email-signup input { display: block; width: 100%; height: 35px; margin: 0 0 9px; padding: 0 10px; border: 1px solid #e3eae1; border-radius: 8px; outline: 0; background: #fff; color: var(--ink); font: 11px "DM Sans", sans-serif; }
+.email-signup input:focus { border-color: #83b99b; box-shadow: 0 0 0 3px #e9f5e9; }
+.email-signup-button { display: flex; width: 100%; height: 38px; align-items: center; justify-content: center; margin-top: 3px; border: 0; border-radius: 8px; background: var(--green); color: white; cursor: pointer; font-size: 11px; font-weight: 700; transition: background .2s, transform .2s; }
+.email-signup-button:hover:not(:disabled) { transform: translateY(-1px); background: var(--green-dark); }
+.email-signup-button:disabled { cursor: wait; opacity: .7; }
+.email-signup-error { margin: 3px 0 7px; color: #a9432e; font-size: 10px; line-height: 1.4; }
+.email-signup-note { margin: 9px 0 0; color: #99a69c; font-size: 9px; line-height: 1.45; }
+.success-page { display: grid; min-height: 100vh; place-items: center; padding: 24px; }
+.success-card { width: min(100%, 480px); padding: 42px 36px; border: 1px solid #edf0e8; border-radius: 20px; background: rgba(255, 255, 255, .95); box-shadow: 0 19px 65px rgba(38, 72, 52, .08); text-align: center; }
+.success-icon { display: grid; width: 58px; height: 58px; margin: 0 auto 18px; place-items: center; border-radius: 18px; background: #eef6e7; color: var(--green); font-size: 28px; }
+.success-card h1 { margin: 0 0 12px; font-size: clamp(30px, 5vw, 40px); letter-spacing: -1.8px; }
+.success-card > p { margin: 0 0 20px; color: #73857a; font-size: 14px; line-height: 1.65; }
+.success-return { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; padding: 0 20px; border-radius: 9px; background: var(--green); color: #fff; font-size: 12px; font-weight: 700; text-decoration: none; }
+.success-return:hover { background: var(--green-dark); }
+.success-countdown { margin: 15px 0 0 !important; color: #91a096 !important; font-size: 10px !important; }
+.success-countdown strong { color: var(--green); }
 .calculator { display: grid; grid-template-columns: 365px minmax(0, 1fr); overflow: hidden; border: 1px solid #edf0e8; border-radius: 20px; background: rgba(255, 255, 255, .93); box-shadow: 0 19px 65px rgba(38, 72, 52, .07); }
 .controls-panel { padding: 28px 27px 22px; background: #fff; border-right: 1px solid #edf0e9; }
 .results-panel { min-width: 0; padding: 28px 30px 20px; }
@@ -93,6 +114,10 @@ form select:disabled { background: #f7f9f5; color: #a5afa6; }
   .bar { width: 7px; }
   .footer { flex-direction: column; font-size: 9px; }
   .disclaimer { text-align: left; }
+}
+
+@media (max-width: 900px) {
+  .email-signup { position: static; width: min(100%, 420px); margin: 0 auto 22px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -47,3 +47,50 @@ test("shows a readable error when the forecast service fails", async ({ page }) 
   await expect(page.getByRole("alert").filter({ hasText: /weather forecast is temporarily unavailable/i }))
     .toHaveText(/weather forecast is temporarily unavailable/i);
 });
+
+test("saves the email signup with the selected profile and shows confirmation", async ({ page }) => {
+  let receivedSignup: Record<string, unknown> | undefined;
+  await page.route("**/email_list", async (route) => {
+    receivedSignup = route.request().postDataJSON();
+    await route.fulfill({
+      json: {
+        id: 1,
+        email_address: "alex@example.com",
+        name: "Alex",
+        skin_type: "IV",
+        location: { name: "Quito, Ecuador", latitude: -0.18, longitude: -78.47 },
+        timezone: -5,
+      },
+    });
+  });
+  await page.goto("/");
+  await page.getByLabel("Where are you?").selectOption("EC:0");
+  await page.getByLabel("Skin type").selectOption("IV");
+  await page.getByLabel("Your name").fill("Alex");
+  await page.getByLabel("Email address").fill("alex@example.com");
+  await page.getByRole("button", { name: "Sign me up" }).click();
+
+  await expect(page).toHaveURL(/\/successful_submission\/?$/);
+  await expect(page.getByRole("heading", { name: /your signup was successful/i })).toBeVisible();
+  await expect(page.getByText(/automatically in/i)).toContainText("7");
+  expect(receivedSignup).toMatchObject({
+    email_address: "alex@example.com",
+    name: "Alex",
+    skin_type: "IV",
+    latitude: -0.18,
+    longitude: -78.47,
+    location_name: "Quito, Ecuador",
+  });
+});
+
+test("returns to the main app from the signup confirmation page", async ({ page }) => {
+  await page.goto("/successful_submission");
+  await page.getByRole("link", { name: "Return to the main app" }).click();
+  await expect(page).toHaveURL("/");
+  await expect(page.getByRole("heading", { name: /find your sun-safe moment/i })).toBeVisible();
+});
+
+test("automatically returns to the main app after seven seconds", async ({ page }) => {
+  await page.goto("/successful_submission");
+  await expect(page).toHaveURL("/", { timeout: 10_000 });
+});

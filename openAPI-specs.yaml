@@ -66,6 +66,39 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/CountryLocations"
+  /email_list:
+    post:
+      summary: Create or update a personalized daily-window email signup
+      operationId: submitEmailSignup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailSignupRequest"
+      responses:
+        "200":
+          description: Saved signup record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailSignupResponse"
+        "422":
+          description: Invalid email, profile, or location
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /successful_submission:
+    get:
+      summary: Personalized signup confirmation page
+      responses:
+        "200":
+          description: Confirmation page with a return link and seven-second redirect
+          content:
+            text/html:
+              schema:
+                type: string
   /health:
     get:
       summary: Liveness check
@@ -195,3 +228,54 @@ components:
           type: string
         request_id:
           type: string
+    EmailSignupRequest:
+      type: object
+      required: [email_address, name, latitude, longitude, skin_type]
+      properties:
+        email_address:
+          type: string
+          format: email
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        latitude:
+          type: number
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: number
+          minimum: -180
+          maximum: 180
+        location_name:
+          type: string
+          maxLength: 120
+        skin_type:
+          type: string
+          enum: ["I", "II", "III", "IV", "V"]
+    EmailSignupResponse:
+      type: object
+      required: [id, email_address, name, skin_type, location, timezone]
+      properties:
+        id:
+          type: integer
+        email_address:
+          type: string
+          format: email
+        name:
+          type: string
+        skin_type:
+          type: string
+        location:
+          type: object
+          required: [name, latitude, longitude]
+          properties:
+            name:
+              type: string
+            latitude:
+              type: number
+            longitude:
+              type: number
+        timezone:
+          type: number
+          description: Current UTC offset at the location, expressed in hours.
