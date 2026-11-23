@@ -5,9 +5,10 @@ import logging
 import os
 import re
 import uuid
+from contextlib import asynccontextmanager
 from contextvars import ContextVar
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, AsyncIterator, Literal
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -21,6 +22,7 @@ from opentelemetry.sdk.trace import TracerProvider
 from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.email_notifications import create_email_scheduler
 from app.services import WeatherServiceError, calculate_recommendation, fetch_weather
 
 BASE_DIR = Path(__file__).resolve().parents[2]
@@ -31,6 +33,7 @@ if not FRONTEND_DIR.is_dir():
 REQUEST_ID = ContextVar("request_id", default="-")
 SAFE_REQUEST_ID = re.compile(r"^[A-Za-z0-9_-]{1,100}$")
 logger = logging.getLogger("vitamin_d")
+scheduler = create_email_scheduler()
 
 
 class JsonFormatter(logging.Formatter):
@@ -56,11 +59,24 @@ def configure_logging() -> None:
 
 configure_logging()
 
+
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    if not scheduler.running:
+        scheduler.start()
+    try:
+        yield
+    finally:
+        if scheduler.running:
+            scheduler.shutdown(wait=False)
+
+
 app = FastAPI(
     title="Vitamin D Exposure Estimate API",
     version="1.0.0",
     description="An educational, weather-aware outdoor exposure estimate. Not medical advice.",
     openapi_url="/openapi.json",
+    lifespan=lifespan,
 )
 app.add_middleware(
     CORSMiddleware,

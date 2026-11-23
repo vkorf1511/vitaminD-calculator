@@ -10,7 +10,12 @@
 - Logging: check dedicated section below called 'Logging Requirements'
 - Metrics: prometheus-fastapi-instrumentator exposed in '/metrics' endpoint to track latency, number of requests and any other industry standards that you might find valuable.
 - **Distributed Tracing:** Implement OpenTelemetry instrumentation for FastAPI and `httpx` (or `requests`) so that outgoing third-party API calls inherit trace context headers.
+- **Database**: PostGres using SQLModel in FastAPI.
 
+## New features policy
+- All new features requirements are placed in '~/specs/features' as dedicated .md files.
+- Create a separate branch using the name of the feature as its name from 'main' and use that for all your development.
+- when done create a Pull Request to main and add as reviewer me 'vkorf1511'/vasilis korfiatis/korfvas.
 
 ## SDLC extra DETAILS:
 - **Specifications:** I want you to first create an OpenAPI spec, in yaml and save it in the project's root folder under the name "openAPI-specs".

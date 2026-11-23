@@ -35,6 +35,8 @@ Requirements: Python 3.12+ and Node.js 20+.
 
 Device geolocation is available on localhost and HTTPS. If permission is declined, choose a city from the location selector instead.
 
+Daily email notifications are checked every 15 minutes to support fractional-hour time zones. At a recipient's local 05:00, the service fetches their forecast, calculates a personalized estimate, and sends a text email plus an HTML hourly chart matching the web app. Configure `DATABASE_URL` for PostgreSQL and set `SMTP_HOST` and `SMTP_SENDER`; optionally set `SMTP_PORT` (default `587`), `SMTP_USERNAME`, `SMTP_PASSWORD`, and `SMTP_USE_STARTTLS` (default `true`). The worker reads `email_address`, `name`, `skin_type`, `location` (JSON coordinates), and `timezone` (UTC offset in hours) from the existing `email_list` table. It resolves the timezone from the saved coordinates to handle daylight-saving changes, falling back to the saved UTC offset if resolution is unavailable. Since that profile does not include clothing preference, email estimates use the existing calculator's `summer clothes` setting. Keep a single API process active to avoid duplicate scheduled sends across replicas.
+
 ## API
 
 | Method | Path | Description |
