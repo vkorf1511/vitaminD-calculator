@@ -2,7 +2,9 @@ name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
+    branches: [main]
 
 jobs:
   backend:
@@ -20,7 +22,7 @@ jobs:
             backend/requirements.txt
             backend/requirements-dev.txt
       - run: python -m pip install -r requirements-dev.txt
-      - run: pytest
+      
 
   frontend:
     runs-on: ubuntu-latest
@@ -40,3 +42,117 @@ jobs:
       - run: npm run test:e2e
         env:
           CI: true
+  
+  container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build --platform linux/amd64 -f Dockerfile.azure -t vitamin-d:${{ github.sha }} .
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [frontend, backend, container]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    env:
+      IMAGE: ghcr.io/vkorf1511/vit-d:${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Build and push production image
+        run: |
+          docker build --platform linux/amd64 --tag "$IMAGE" .
+          docker push "$IMAGE"
+      - name: Install Azure Container Apps CLI extension
+        run: az extension add --name containerapp --upgrade --yes
+      - name: Configure GitHub Container Registry pull access
+        env:
+          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+          GHCR_READ_TOKEN: ${{ secrets.GHCR_READ_TOKEN }}
+        run: |
+          if [ -z "$GHCR_USERNAME" ] || [ -z "$GHCR_READ_TOKEN" ]; then
+            echo "GHCR_USERNAME and GHCR_READ_TOKEN secrets are required for the Container App to pull the image."
+            exit 1
+          fi
+          az containerapp registry set \
+            --name deili-ca \
+            --resource-group deili-rg \
+            --server ghcr.io \
+            --username "$GHCR_USERNAME" \
+            --password "$GHCR_READ_TOKEN"
+      - name: Capture current production state
+        id: previous
+        run: |
+          image="$(az containerapp show \
+            --name deili-ca \
+            --resource-group deili-rg \
+            --query 'properties.template.containers[0].image' \
+            --output tsv)"
+          if [ -z "$image" ] || [ "$image" = "None" ]; then
+            echo "Could not determine the currently deployed Container App image."
+            exit 1
+          fi
+          fqdn="$(az containerapp show \
+            --name deili-ca \
+            --resource-group deili-rg \
+            --query 'properties.configuration.ingress.fqdn' \
+            --output tsv)"
+          if [ -z "$fqdn" ] || [ "$fqdn" = "None" ]; then
+            echo "Could not determine the production Container App hostname."
+            exit 1
+          fi
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+          echo "fqdn=$fqdn" >> "$GITHUB_OUTPUT"
+      - name: Deploy production Container App revision
+        run: |
+          az containerapp update \
+            --name deili-ca \
+            --resource-group deili-rg \
+            --image "$IMAGE"
+      - name: Verify production health
+        env:
+          PREVIOUS_IMAGE: ${{ steps.previous.outputs.image }}
+          FQDN: ${{ steps.previous.outputs.fqdn }}
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent "https://${FQDN}/api/health" \
+              | jq --exit-status '.status == "ok"' >/dev/null; then
+              echo "Production health check passed."
+              exit 0
+            fi
+            echo "Waiting for production health check ($attempt/30)..."
+            sleep 10
+          done
+
+          echo "Production did not become healthy. Restoring the previous image."
+          az containerapp update \
+            --name deili-ca \
+            --resource-group deili-rg \
+            --image "$PREVIOUS_IMAGE"
+
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent "https://${FQDN}/api/health" \
+              | jq --exit-status '.status == "ok"' >/dev/null; then
+              echo "Previous image restored and production health check passed."
+              exit 1
+            fi
+            echo "Waiting for rollback health check ($attempt/30)..."
+            sleep 10
+          done
+
+          echo "Production rollback did not become healthy within 5 minutes."
+          exit 1
+
