@@ -73,7 +73,7 @@ jobs:
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
       - name: Build and push production image
         run: |
-          docker build --platform linux/amd64 -f Dockerfile.azure--tag "$IMAGE" .
+          docker build --platform linux/amd64 -f Dockerfile.azure --tag "$IMAGE" .
           docker push "$IMAGE"
       - name: Install Azure Container Apps CLI extension
         run: az extension add --name containerapp --upgrade --yes
@@ -87,8 +87,8 @@ jobs:
             exit 1
           fi
           az containerapp registry set \
-            --name deili-ca \
-            --resource-group deili-rg \
+            --name vit-d \
+            --resource-group play-resource-group \
             --server ghcr.io \
             --username "$GHCR_USERNAME" \
             --password "$GHCR_READ_TOKEN"
@@ -96,8 +96,8 @@ jobs:
         id: previous
         run: |
           image="$(az containerapp show \
-            --name deili-ca \
-            --resource-group deili-rg \
+            --name vit-d \
+            --resource-group play-resource-group \
             --query 'properties.template.containers[0].image' \
             --output tsv)"
           if [ -z "$image" ] || [ "$image" = "None" ]; then
@@ -105,8 +105,8 @@ jobs:
             exit 1
           fi
           fqdn="$(az containerapp show \
-            --name deili-ca \
-            --resource-group deili-rg \
+            --name vit-d \
+            --resource-group play-resource-group \
             --query 'properties.configuration.ingress.fqdn' \
             --output tsv)"
           if [ -z "$fqdn" ] || [ "$fqdn" = "None" ]; then
@@ -127,7 +127,7 @@ jobs:
           FQDN: ${{ steps.previous.outputs.fqdn }}
         run: |
           for attempt in $(seq 1 30); do
-            if curl --fail --silent "https://${FQDN}/api/health" \
+            if curl --fail --silent "https://${FQDN}/health" \
               | jq --exit-status '.status == "ok"' >/dev/null; then
               echo "Production health check passed."
               exit 0
@@ -138,12 +138,12 @@ jobs:
 
           echo "Production did not become healthy. Restoring the previous image."
           az containerapp update \
-            --name deili-ca \
-            --resource-group deili-rg \
+            --name vit-d \
+            --resource-group play-resource-group \
             --image "$PREVIOUS_IMAGE"
 
           for attempt in $(seq 1 30); do
-            if curl --fail --silent "https://${FQDN}/api/health" \
+            if curl --fail --silent "https://${FQDN}/health" \
               | jq --exit-status '.status == "ok"' >/dev/null; then
               echo "Previous image restored and production health check passed."
               exit 1
