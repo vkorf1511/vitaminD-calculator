@@ -22,8 +22,7 @@ jobs:
             backend/requirements.txt
             backend/requirements-dev.txt
       - run: python -m pip install -r requirements-dev.txt
-      
-
+    
   frontend:
     runs-on: ubuntu-latest
     defaults:
@@ -74,7 +73,7 @@ jobs:
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
       - name: Build and push production image
         run: |
-          docker build --platform linux/amd64 --tag "$IMAGE" .
+          docker build --platform linux/amd64 -f Dockerfile.azure--tag "$IMAGE" .
           docker push "$IMAGE"
       - name: Install Azure Container Apps CLI extension
         run: az extension add --name containerapp --upgrade --yes
