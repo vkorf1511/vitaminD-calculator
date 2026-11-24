@@ -118,8 +118,8 @@ jobs:
       - name: Deploy production Container App revision
         run: |
           az containerapp update \
-            --name deili-ca \
-            --resource-group deili-rg \
+            --name vit-d \
+            --resource-group play-resource-group \
             --image "$IMAGE"
       - name: Verify production health
         env:
